@@ -7,13 +7,29 @@ class Form_Builder {
 
     /**
      * Rendert den interaktiven Form Builder.
-     *
-     * Der Administrator kann hier die Formularfelder (für den "anonymous" und "detailed" Bereich)
-     * interaktiv konfigurieren. Die Konfiguration (inklusive Versionsnummer) wird als JSON in der wp_options-Tabelle gespeichert.
      */
     public function render() {
-        // Lade die aktuelle Konfiguration; Standardwerte, falls nicht vorhanden.
-        $config_json = get_option('worker_is_form_config', '{"version": "1.0", "anonymous": "[]", "detailed": "[]"}');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('worker_is_save_form_config', 'worker_is_nonce')) {
+            $new_config = array(
+                'version'   => sanitize_text_field($_POST['form_version']),
+                'anonymous' => stripslashes($_POST['anonymous_fields']),
+                'detailed'  => stripslashes($_POST['detailed_fields']),
+            );
+            $success = update_option('worker_is_form_config', json_encode($new_config));
+            if ($success) {
+                echo '<div class="updated"><p>' . __('Form configuration saved.', 'worker-is') . '</p></div>';
+                Logger::log('Form configuration saved.', $new_config);
+            } else {
+                echo '<div class="error"><p>' . __('Failed to save configuration.', 'worker-is') . '</p></div>';
+                Logger::log('Form configuration NOT saved.', $new_config);
+            }
+        }
+
+        $config_json = get_option('worker_is_form_config', json_encode([
+            'version' => '1.0',
+            'anonymous' => [],
+            'detailed' => []
+        ]));
         $config = json_decode($config_json, true);
         ?>
         <div class="wrap">
@@ -44,15 +60,21 @@ class Form_Builder {
                         </td>
                     </tr>
                 </table>
-                <!-- Hidden-Felder, die per JavaScript aktualisiert werden -->
                 <input type="hidden" id="anonymous_fields" name="anonymous_fields" value="<?php echo esc_attr(json_encode($config['anonymous'])); ?>">
                 <input type="hidden" id="detailed_fields" name="detailed_fields" value="<?php echo esc_attr(json_encode($config['detailed'])); ?>">
                 <?php submit_button(__('Save Form Configuration', 'worker-is')); ?>
             </form>
             <h2><?php _e('Form Preview (JSON)', 'worker-is'); ?></h2>
-            <pre id="form-preview"></pre>
+            <pre><code id="form-preview" class="json"></code></pre>
+            <h2><?php _e('Export/Import Configuration', 'worker-is'); ?></h2>
+            <button type="button" id="export-config" class="button">Export Configuration</button>
+            <label style="margin-left: 1rem;">
+              <?php _e('Import JSON:', 'worker-is'); ?>
+              <input type="file" id="import-config" accept=".json">
+            </label>
         </div>
-        <!-- Bootstrap Modal für die Konfiguration eines Formularfelds -->
+
+        <!-- Bootstrap Modal -->
         <div class="modal fade" id="fieldModal" tabindex="-1" role="dialog" aria-labelledby="fieldModalLabel" aria-hidden="true">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -96,12 +118,68 @@ class Form_Builder {
             </div>
           </div>
         </div>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+        <script>hljs.highlightAll();</script>
         <script type="text/javascript">
             var workerIsFormConfig = {
-                version: "<?php echo esc_js($config['version']); ?>",
-                anonymous: JSON.parse(<?php echo json_encode($config['anonymous']); ?>),
-                detailed: JSON.parse(<?php echo json_encode($config['detailed']); ?>)
+                version: <?php echo json_encode($config['version']); ?>,
+                anonymous: <?php echo $config['anonymous'] ?: '[]'; ?>,
+                detailed: <?php echo $config['detailed'] ?: '[]'; ?>
             };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const preview = document.getElementById('form-preview');
+                if (!preview || typeof workerIsFormConfig === 'undefined') return;
+
+                const formatted = JSON.stringify(workerIsFormConfig, null, 2);
+                preview.textContent = formatted;
+                if (typeof hljs !== 'undefined') {
+                    hljs.highlightElement(preview);
+                }
+
+                document.getElementById('export-config').addEventListener('click', function () {
+                    const blob = new Blob([formatted], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'form_config.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+
+                document.getElementById('import-config').addEventListener('change', function (event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (!imported.anonymous || !imported.detailed || !imported.version) {
+                                alert('Ungültige JSON-Struktur.');
+                                return;
+                            }
+                            document.querySelector('[name=form_version]').value = imported.version;
+                            document.querySelector('[name=anonymous_fields]').value = JSON.stringify(imported.anonymous);
+                            document.querySelector('[name=detailed_fields]').value = JSON.stringify(imported.detailed);
+
+                            // Vorschau aktualisieren
+                            workerIsFormConfig = imported;
+                            const formattedNew = JSON.stringify(imported, null, 2);
+                            preview.textContent = formattedNew;
+                            if (typeof hljs !== 'undefined') {
+                                hljs.highlightElement(preview);
+                            }
+
+                            alert('Import erfolgreich! Änderungen sind noch nicht gespeichert.');
+                        } catch (err) {
+                            alert('Fehler beim Import: ' + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            });
         </script>
         <?php
         Logger::log('Interactive Form Builder page rendered.');
