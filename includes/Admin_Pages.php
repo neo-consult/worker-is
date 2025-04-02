@@ -78,6 +78,17 @@ class Admin_Pages {
             array($this, 'render_sub_page')
         );
 
+        // Submenü: Logs
+        add_submenu_page(
+            'worker-is-dashboard',
+            __('Logs', 'worker-is'),
+            __('Logs', 'worker-is'),
+            'manage_options',
+            'worker-is-logs',
+            array($this, 'render_sub_page')
+        );
+
+
         Logger::log('Admin pages added.');
     }
 
@@ -118,6 +129,10 @@ class Admin_Pages {
             case 'worker-is-settings':
                 (new \WorkerIS\SubPages\Settings())->render();
                 break;
+            case 'worker-is-logs':
+                (new \WorkerIS\SubPages\Log_Viewer())->render();
+                break;
+                
             default:
                 echo '<div class="wrap"><h1>' . __('Page not found.', 'worker-is') . '</h1></div>';
                 Logger::log('Unknown admin subpage requested.', array('page' => $page));
