@@ -1,0 +1,16 @@
+.form-builder-field {
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    margin: 10px 0;
+    padding: 10px;
+  }
+  .form-builder-field input[type="text"],
+  .form-builder-field select {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  .delete-field {
+    margin-top: 5px;
+    float: right;
+  }
+  
