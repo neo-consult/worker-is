@@ -11,48 +11,48 @@ class Router {
         $page = $_GET['page'] ?? '';
 
         switch ($page) {
-            case 'worker-is': // Übersicht
+            case 'worker-is':
                 if (!current_user_can('worker_is_view_profiles')) {
-                    return self::deny();
+                    self::deny();
                 }
                 ProfileController::index();
                 break;
 
-            case 'worker-is-create': // Neues Profil
+            case 'worker-is-create':
                 if (!current_user_can('worker_is_create_profiles')) {
-                    return self::deny();
+                    self::deny();
                 }
                 ProfileController::create();
                 break;
 
-            case 'worker-is-edit': // Profil bearbeiten
+            case 'worker-is-edit':
                 if (!current_user_can('worker_is_edit_profiles')) {
-                    return self::deny();
+                    self::deny();
                 }
                 $id = $_GET['id'] ?? null;
                 if (!$id) {
-                    return self::deny('Keine Profil-ID übergeben.');
+                    self::deny('Keine Profil-ID übergeben.');
                 }
                 ProfileController::edit($id);
                 break;
 
-            case 'worker-is-config': // Felder bearbeiten
+            case 'worker-is-config':
                 if (!current_user_can('worker_is_manage_config')) {
-                    return self::deny();
+                    self::deny();
                 }
                 FormConfigController::render();
                 break;
 
             case 'worker-is-logs':
                 if (!current_user_can('worker_is_view_logs')) {
-                    return self::deny();
+                    self::deny();
                 }
                 LogViewerController::render();
                 break;
 
             case 'worker-is-roles':
                 if (!current_user_can('worker_is_manage_roles')) {
-                    return self::deny();
+                    self::deny();
                 }
                 RoleManagerController::render();
                 break;
