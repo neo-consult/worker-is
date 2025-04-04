@@ -33,53 +33,67 @@ class Profile {
     /**
      * Erstellt ein neues Profil inkl. dynamischer Felder (serialisiert).
      */
-    public static function create(array $data): string {
+    public static function create(array $data): string|false {
         global $wpdb;
-
+    
         $id = uniqid('', true);
         $insert = [
-            'id'            => $id,
-            'name'          => $data['name'] ?? '',
-            'email'         => $data['email'] ?? '',
-            'profile_data'  => maybe_serialize($data['profile_data'] ?? []),
+            'id'               => $id,
+            'profile_data'     => maybe_serialize($data['profile_data'] ?? []),
             'assigned_user_id' => intval($data['assigned_user_id'] ?? 0),
-            'created_at'    => current_time('mysql', 1),
-            'updated_at'    => current_time('mysql', 1),
+            'created_at'       => current_time('mysql', 1),
+            'updated_at'       => current_time('mysql', 1),
         ];
-
+    
         $result = $wpdb->insert($wpdb->prefix . 'worker_profiles', $insert);
-
+    
         if ($result === false) {
-            Logger::error('Fehler beim Erstellen des Profils', ['error' => $wpdb->last_error, 'data' => $insert]);
-        } else {
-            Logger::info('Profil erstellt', ['id' => $id]);
+            Logger::error('Fehler beim Erstellen des Profils', [
+                'error' => $wpdb->last_error,
+                'data'  => $insert
+            ]);
+            return false; // ❗ neu: Rückgabe bei Fehler
         }
-
+    
+        Logger::info('Profil erstellt', ['id' => $id]);
         return $id;
     }
+    
 
     /**
      * Aktualisiert ein bestehendes Profil anhand der ID.
      */
-    public static function update(string $id, array $data): void {
+    public static function update(string $id, array $data): bool {
         global $wpdb;
-
+    
         $update = [
-            'name'         => $data['name'] ?? '',
-            'email'        => $data['email'] ?? '',
-            'profile_data' => maybe_serialize($data['profile_data'] ?? []),
+            'profile_data'     => maybe_serialize($data['profile_data'] ?? []),
             'assigned_user_id' => intval($data['assigned_user_id'] ?? 0),
-            'updated_at'   => current_time('mysql', 1),
+            'updated_at'       => current_time('mysql', 1),
         ];
-
-        $result = $wpdb->update($wpdb->prefix . 'worker_profiles', $update, ['id' => $id]);
-
+    
+        $result = $wpdb->update(
+            $wpdb->prefix . 'worker_profiles',
+            $update,
+            ['id' => $id],
+            ['%s', '%d', '%s'],
+            ['%s']
+        );
+    
         if ($result === false) {
-            Logger::error('Fehler beim Aktualisieren des Profils', ['id' => $id, 'error' => $wpdb->last_error]);
-        } else {
-            Logger::info('Profil aktualisiert', ['id' => $id]);
+            Logger::error('Fehler beim Aktualisieren des Profils', [
+                'error' => $wpdb->last_error,
+                'id'    => $id,
+                'data'  => $update
+            ]);
+            return false;
         }
+    
+        Logger::info('Profil aktualisiert', ['id' => $id]);
+        return true;
     }
+    
+    
 
     /**
      * (Optional) Löscht ein Profil vollständig.

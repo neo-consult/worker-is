@@ -49,43 +49,42 @@ class ProfileController {
     }
 
     public static function store(): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            wp_die('Ungültige Anfrage');
-        }
-
-        check_admin_referer('worker_is_profile_form', 'worker_is_profile_nonce');
-
-        $id = $_POST['id'] ?? null;
-        $mode = $id ? 'edit' : 'create';
-
         $profile_data = [
             'name'              => sanitize_text_field($_POST['name']),
             'email'             => sanitize_email($_POST['email']),
             'assigned_user_id'  => intval($_POST['assigned_user_id'] ?? 0),
             'profile_data'      => [
                 'anonymous' => $_POST['dynamic']['anonymous'] ?? [],
-                'detailed'  => $_POST['dynamic']['detailed'] ?? []
-            ]
+                'detailed'  => $_POST['dynamic']['detailed'] ?? [],
+            ],
         ];
-
+    
         $contact_data = [
             'name'    => sanitize_text_field($_POST['name']),
             'email'   => sanitize_email($_POST['email']),
             'telefon' => sanitize_text_field($_POST['telefon']),
             'adresse' => sanitize_textarea_field($_POST['adresse']),
         ];
-
+    
+        $id = $_POST['id'] ?? null;
+    
         if ($id) {
             Profile::update($id, $profile_data);
             Contact::update($id, $contact_data);
-            Logger::info("Profil aktualisiert", ['id' => $id]);
+            Logger::info('Profil aktualisiert', ['id' => $id]);
         } else {
             $id = Profile::create($profile_data);
+    
+            if (!$id) {
+                Logger::error('Profil konnte nicht erstellt werden');
+                wp_die('Fehler beim Erstellen des Profils');
+            }
+    
             Contact::insert($id, $contact_data);
-            Logger::info("Neues Profil erstellt", ['id' => $id]);
+            Logger::info('Neues Profil erstellt', ['id' => $id]);
         }
-
-        wp_redirect(admin_url('admin.php?page=worker-is-edit&id=' . urlencode($id) . '&saved=1'));
-        exit;
+    
+        echo '<div class="notice notice-success"><p>Profil gespeichert.</p></div>';
     }
+    
 }

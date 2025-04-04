@@ -11,28 +11,65 @@ class Contact {
         );
     }
 
-    public static function insert(string $profile_id, array $data): void {
+    public static function insert(string $profile_id, array $data): bool {
         global $wpdb;
-
-        $insert = array_merge([
-            'id' => uniqid('', true),
+    
+        $insert = [
+            'id'         => uniqid('', true),
             'profile_id' => $profile_id,
-            'created_at' => current_time('mysql', 1)
-        ], $data);
-
+            'worker_id'  => $data['worker_id'] ?? 'WRK',
+            'name'       => $data['name'] ?? '',
+            'email'      => $data['email'] ?? '',
+            'telefon'    => $data['telefon'] ?? '',
+            'adresse'    => $data['adresse'] ?? '',
+            'created_at' => current_time('mysql', 1),
+        ];
+    
         $result = $wpdb->insert($wpdb->prefix . 'worker_contacts', $insert);
-
+    
         if ($result === false) {
-            Logger::error('Fehler beim Insert in Contacts', ['error' => $wpdb->last_error, 'data' => $insert]);
+            Logger::error('Fehler beim Erstellen des Kontakts', [
+                'error' => $wpdb->last_error,
+                'data'  => $insert
+            ]);
+            return false;
         }
+    
+        Logger::info('Kontakt gespeichert', ['profile_id' => $profile_id]);
+        return true;
     }
+    
 
-    public static function update(string $profile_id, array $data): void {
+
+    public static function update(string $profile_id, array $data): bool {
         global $wpdb;
-        $result = $wpdb->update($wpdb->prefix . 'worker_contacts', $data, ['profile_id' => $profile_id]);
-
+    
+        $update = [
+            'name'    => $data['name'] ?? '',
+            'email'   => $data['email'] ?? '',
+            'telefon' => $data['telefon'] ?? '',
+            'adresse' => $data['adresse'] ?? '',
+        ];
+    
+        $result = $wpdb->update(
+            $wpdb->prefix . 'worker_contacts',
+            $update,
+            ['profile_id' => $profile_id],
+            ['%s', '%s', '%s', '%s'],
+            ['%s']
+        );
+    
         if ($result === false) {
-            Logger::error('Fehler beim Update von Contacts', ['id' => $profile_id, 'error' => $wpdb->last_error]);
+            Logger::error('Fehler beim Aktualisieren des Kontakts', [
+                'error' => $wpdb->last_error,
+                'profile_id' => $profile_id,
+                'data' => $update
+            ]);
+            return false;
         }
+    
+        Logger::info('Kontakt aktualisiert', ['profile_id' => $profile_id]);
+        return true;
     }
+    
 }
