@@ -1,4 +1,6 @@
 <?php
+// Goal: Clean schema with correct logging, retain original comments and structure, update contact table fields
+
 namespace WorkerIS\Model;
 
 use WorkerIS\Core\Logger;
@@ -6,14 +8,15 @@ use WorkerIS\Core\Logger;
 class DB_Manager {
 
     /**
-     * Erstellt oder aktualisiert die notwendigen Tabellen für das Plugin.
+     * Creates required database tables.
      */
     public function install(): void {
         global $wpdb;
         $charset = $wpdb->get_charset_collate();
 
         // Tabelle: worker_profiles
-        $sql_profiles = "CREATE TABLE {$wpdb->prefix}worker_profiles (
+        $profiles_table = $wpdb->prefix . 'worker_profiles';
+        $sql_profiles = "CREATE TABLE $profiles_table (
             id char(36) NOT NULL,
             worker_id char(3) NOT NULL,
             profile_data longtext NOT NULL,
@@ -24,34 +27,52 @@ class DB_Manager {
             updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
             deleted_at datetime DEFAULT NULL,
             PRIMARY KEY (id),
-            UNIQUE KEY worker_id (worker_id),
-            KEY assigned_user_id (assigned_user_id),
-            KEY owner_id (owner_id)
+            UNIQUE KEY (worker_id),
+            KEY (assigned_user_id),
+            KEY (owner_id)
         ) $charset;";
 
         // Tabelle: worker_contacts
-        $sql_contacts = "CREATE TABLE {$wpdb->prefix}worker_contacts (
+        $contacts_table = $wpdb->prefix . 'worker_contacts';
+        $sql_contacts = "CREATE TABLE $contacts_table (
             id char(36) NOT NULL,
             profile_id char(36) NOT NULL,
-            worker_id char(3) NOT NULL,
-            name varchar(255) NOT NULL,
+            firstname varchar(255) NOT NULL,
+            lastname varchar(255) NOT NULL,
             email varchar(255) NOT NULL,
-            telefon varchar(20),
-            adresse text,
+            phone varchar(20) DEFAULT NULL,
+            address text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
             PRIMARY KEY (id),
-            KEY profile_id (profile_id)
+            KEY (profile_id)
         ) $charset;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+        Logger::info('Creating database table: ' . $profiles_table);
         dbDelta($sql_profiles);
-        Logger::info('Tabelle worker_profiles installiert oder aktualisiert.');
 
+        Logger::info('Creating database table: ' . $contacts_table);
         dbDelta($sql_contacts);
-        Logger::info('Tabelle worker_contacts installiert oder aktualisiert.');
 
         $this->maybe_insert_default_config();
+
+        Logger::info('Database installation complete.');
+    }
+
+    /**
+     * Drops all plugin tables.
+     */
+    public function uninstall(): void {
+        global $wpdb;
+
+        $profiles_table = $wpdb->prefix . 'worker_profiles';
+        $contacts_table = $wpdb->prefix . 'worker_contacts';
+
+        $wpdb->query("DROP TABLE IF EXISTS $profiles_table;");
+        $wpdb->query("DROP TABLE IF EXISTS $contacts_table;");
+
+        Logger::info('All plugin tables dropped.');
     }
 
     /**
