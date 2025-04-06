@@ -2,19 +2,18 @@
 use WorkerIS\Core\FormRenderer;
 
 $profile = $profile ?? (object) [
-    'name' => '',
+    'firstname' => '',
+    'lastname' => '',
     'email' => '',
-    'telefon' => '',
-    'adresse' => '',
+    'phone' => '',
+    'address' => '',
     'assigned_user_id' => '',
     'dynamic' => ['anonymous' => [], 'detailed' => []],
 ];
 
-// Neue POST-Ziel-URL über admin-post
 $action = admin_url('admin-post.php');
 $users = get_users(['fields' => ['ID', 'display_name']]);
 
-// Form-Konfiguration laden
 $config = get_option('worker_is_form_config', '{"anonymous":"[]","detailed":"[]"}');
 $parsed = json_decode($config, true);
 $anon_fields = json_decode($parsed['anonymous'] ?? '[]', true);
@@ -48,8 +47,13 @@ $detailed_fields = json_decode($parsed['detailed'] ?? '[]', true);
             </tr>
 
             <tr>
-                <th><label for="name">Name</label></th>
-                <td><input name="name" id="name" value="<?= esc_attr($profile->name) ?>" class="regular-text" required></td>
+                <th><label for="firstname">Vorname</label></th>
+                <td><input name="firstname" id="firstname" value="<?= esc_attr($profile->firstname) ?>" class="regular-text" required></td>
+            </tr>
+
+            <tr>
+                <th><label for="lastname">Nachname</label></th>
+                <td><input name="lastname" id="lastname" value="<?= esc_attr($profile->lastname) ?>" class="regular-text" required></td>
             </tr>
 
             <tr>
@@ -58,13 +62,13 @@ $detailed_fields = json_decode($parsed['detailed'] ?? '[]', true);
             </tr>
 
             <tr>
-                <th><label for="telefon">Telefon</label></th>
-                <td><input name="telefon" id="telefon" value="<?= esc_attr($profile->telefon) ?>" class="regular-text"></td>
+                <th><label for="phone">Telefon</label></th>
+                <td><input name="phone" id="phone" value="<?= esc_attr($profile->phone) ?>" class="regular-text"></td>
             </tr>
 
             <tr>
-                <th><label for="adresse">Adresse</label></th>
-                <td><textarea name="adresse" id="adresse" rows="3" class="large-text"><?= esc_textarea($profile->adresse) ?></textarea></td>
+                <th><label for="address">Adresse</label></th>
+                <td><textarea name="address" id="address" rows="3" class="large-text"><?= esc_textarea($profile->address) ?></textarea></td>
             </tr>
         </table>
 

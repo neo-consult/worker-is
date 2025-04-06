@@ -34,8 +34,10 @@ class ProfileController {
 
         $contact = Contact::find_by_profile($id);
         if ($contact) {
-            $profile->telefon = $contact->telefon ?? '';
-            $profile->adresse = $contact->adresse ?? '';
+            $profile->phone = $contact->phone ?? '';
+            $profile->address = $contact->address ?? '';
+            $profile->firstname = $contact->firstname ?? '';
+            $profile->lastname = $contact->lastname ?? '';
         }
 
         $data = maybe_unserialize($profile->profile_data ?? '');
@@ -50,7 +52,8 @@ class ProfileController {
 
     public static function store(): void {
         $profile_data = [
-            'name'              => sanitize_text_field($_POST['name']),
+            'firstname'         => sanitize_text_field($_POST['firstname']),
+            'lastname'          => sanitize_text_field($_POST['lastname']),
             'email'             => sanitize_email($_POST['email']),
             'assigned_user_id'  => intval($_POST['assigned_user_id'] ?? 0),
             'profile_data'      => [
@@ -58,33 +61,33 @@ class ProfileController {
                 'detailed'  => $_POST['dynamic']['detailed'] ?? [],
             ],
         ];
-    
+
         $contact_data = [
-            'name'    => sanitize_text_field($_POST['name']),
-            'email'   => sanitize_email($_POST['email']),
-            'telefon' => sanitize_text_field($_POST['telefon']),
-            'adresse' => sanitize_textarea_field($_POST['adresse']),
+            'firstname' => sanitize_text_field($_POST['firstname']),
+            'lastname'  => sanitize_text_field($_POST['lastname']),
+            'email'     => sanitize_email($_POST['email']),
+            'phone'     => sanitize_text_field($_POST['phone']),
+            'address'   => sanitize_textarea_field($_POST['address']),
         ];
-    
+
         $id = $_POST['id'] ?? null;
-    
+
         if ($id) {
             Profile::update($id, $profile_data);
             Contact::update($id, $contact_data);
             Logger::info('Profil aktualisiert', ['id' => $id]);
         } else {
             $id = Profile::create($profile_data);
-    
+
             if (!$id) {
                 Logger::error('Profil konnte nicht erstellt werden');
                 wp_die('Fehler beim Erstellen des Profils');
             }
-    
+
             Contact::insert($id, $contact_data);
             Logger::info('Neues Profil erstellt', ['id' => $id]);
         }
-    
+
         echo '<div class="notice notice-success"><p>Profil gespeichert.</p></div>';
     }
-    
 }
